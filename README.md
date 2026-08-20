@@ -50,3 +50,29 @@ A space-themed AI chatbot with a ChatGPT-style interface, powered by the Groq AP
 - React 19 + Vite 8
 - Express 5 + OpenAI SDK (Groq-compatible endpoint)
 - react-markdown + rehype-highlight
+
+## Deploying to Vercel
+
+The project is set up for Vercel: Vite builds the frontend to `dist/` and the Express
+app is served as a serverless function from `api/chat.js` (Vercel routes `/api/chat`
+to it automatically — no `vercel.json` needed).
+
+1. Push this repo to GitHub.
+2. Import the repo at https://vercel.com/new (framework auto-detected as **Vite**).
+3. Add the environment variables from `.env` under **Settings → Environment Variables**:
+   - `GROQ_API_KEY` (required)
+   - `GROQ_MODEL` (optional, default `openai/gpt-oss-120b`)
+4. Deploy. Vercel runs `npm run build` automatically and serves the API at `/api/chat`.
+
+To test a production build locally before deploying:
+
+```sh
+npm run build
+npm run preview   # serves dist on :4173 and proxies /api to the local server
+```
+
+## Project structure
+
+- `server/app.js` — the Express app (exported, used by both local and serverless entrypoints)
+- `server/index.js` — local dev entrypoint (`app.listen`)
+- `api/chat.js` — Vercel serverless function entrypoint
