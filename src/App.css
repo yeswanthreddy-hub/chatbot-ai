@@ -476,6 +476,15 @@
   cursor: not-allowed;
 }
 
+.chat-stop {
+  background: #dc2626;
+}
+
+.chat-stop:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: none;
+}
+
 /* History panel */
 .history {
   position: fixed;

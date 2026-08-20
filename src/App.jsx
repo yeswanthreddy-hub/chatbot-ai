@@ -52,6 +52,8 @@ const SUGGESTIONS = [
   'Tell me a fun fact about space',
 ]
 
+const STORAGE_KEY = 'yash-chat-messages'
+
 function makeTitle(text) {
   const line = text
     .split('\n')
@@ -105,15 +107,31 @@ function CodeBlock({ children }) {
 }
 
 function App() {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch {
+      /* ignore invalid stored data */
+    }
+    return []
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const endRef = useRef(null)
+  const abortRef = useRef(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+  }, [messages])
 
   const history = []
   messages.forEach((msg, i) => {
@@ -132,25 +150,75 @@ function App() {
     if (!t || loading) return
 
     const nextMessages = [...messages, { role: 'user', content: t }]
-    setMessages(nextMessages)
+    const controller = new AbortController()
+    abortRef.current = controller
+    setMessages([...nextMessages, { role: 'assistant', content: '' }])
     setInput('')
     setLoading(true)
     setError('')
 
+    let reply = ''
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: nextMessages }),
+        signal: controller.signal,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Request failed')
-      setMessages([...nextMessages, { role: 'assistant', content: data.reply }])
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Request failed')
+      }
+      if (!res.body) {
+        throw new Error('Empty response body')
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        reply += decoder.decode(value, { stream: true })
+        setMessages((prev) => {
+          const next = [...prev]
+          next[next.length - 1] = { role: 'assistant', content: reply }
+          return next
+        })
+      }
+      reply += decoder.decode()
+      if (reply) {
+        setMessages((prev) => {
+          const next = [...prev]
+          next[next.length - 1] = { role: 'assistant', content: reply }
+          return next
+        })
+      } else {
+        dropLastEmptyAssistant()
+        setError('The model returned an empty response. Please try again.')
+      }
     } catch (err) {
-      setError(err.message)
+      if (err.name === 'AbortError') {
+        if (!reply) dropLastEmptyAssistant()
+      } else {
+        dropLastEmptyAssistant()
+        setError(err.message)
+      }
     } finally {
       setLoading(false)
+      abortRef.current = null
     }
+  }
+
+  function stop() {
+    abortRef.current?.abort()
+  }
+
+  function dropLastEmptyAssistant() {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1]
+      if (last?.role === 'assistant' && !last.content) return prev.slice(0, -1)
+      return prev
+    })
   }
 
   async function sendMessage(e) {
@@ -189,30 +257,27 @@ function App() {
               <div key={i} data-idx={i} className={`message ${msg.role}`}>
                 <div className="bubble">
                   {msg.role === 'assistant' ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[[rehypeHighlight, { languages }]]}
-                      components={{ pre: CodeBlock }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
+                    loading && i === messages.length - 1 && !msg.content ? (
+                      <div className="typing-dots">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[[rehypeHighlight, { languages }]]}
+                        components={{ pre: CodeBlock }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    )
                   ) : (
                     msg.content
                   )}
                 </div>
               </div>
             ))
-          )}
-          {loading && (
-            <div className="message assistant">
-              <div className="bubble">
-                <div className="typing-dots">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-            </div>
           )}
           {error && <div className="error">{error}</div>}
           <div ref={endRef} />
@@ -225,9 +290,15 @@ function App() {
             placeholder="Ask anything to YaSh..."
             autoFocus
           />
-          <button type="submit" disabled={loading || !input.trim()}>
-            Send
-          </button>
+          {loading ? (
+            <button type="button" className="chat-stop" onClick={stop}>
+              Stop
+            </button>
+          ) : (
+            <button type="submit" disabled={!input.trim()}>
+              Send
+            </button>
+          )}
         </form>
       </div>
 

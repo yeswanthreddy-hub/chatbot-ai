@@ -23,6 +23,15 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages array is required' })
   }
 
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.flushHeaders()
+
+  let aborted = false
+  res.on('close', () => {
+    aborted = true
+  })
+
   const systemPrompt = {
     role: 'system',
     content:
@@ -41,14 +50,31 @@ app.post('/api/chat', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       messages: [systemPrompt, ...messages],
+      stream: true,
     })
 
-    res.json({ reply: completion.choices[0].message.content })
+    let wroteContent = false
+    for await (const chunk of completion) {
+      if (aborted || res.writableEnded) break
+      const delta = chunk.choices[0]?.delta?.content || ''
+      if (delta) {
+        wroteContent = true
+        res.write(delta)
+      }
+    }
+    if (aborted || res.writableEnded) return
+    if (!wroteContent) {
+      res.write('⚠️ The model returned an empty response. Please try again.')
+    }
+    res.end()
   } catch (err) {
     console.error('Groq error:', err)
-    res.status(500).json({
-      error: err.message || 'Something went wrong',
-    })
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Something went wrong' })
+    } else if (!res.writableEnded) {
+      res.write(`\n\n> ⚠️ Error: ${err.message || 'Something went wrong'}`)
+      res.end()
+    }
   }
 })
 
