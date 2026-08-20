@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { createLowlight } from 'lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import ts from 'highlight.js/lib/languages/typescript'
 import python from 'highlight.js/lib/languages/python'
@@ -22,7 +21,7 @@ import markdown from 'highlight.js/lib/languages/markdown'
 import SpaceBackground from './components/SpaceBackground.jsx'
 import './App.css'
 
-const lowlight = createLowlight({
+const languages = {
   js,
   javascript: js,
   ts,
@@ -44,12 +43,69 @@ const lowlight = createLowlight({
   sql,
   yaml,
   markdown,
-})
+}
+
+const SUGGESTIONS = [
+  'Explain what is quantum computing',
+  'Write a Python script to sort a list',
+  'Help me plan a study schedule',
+  'Tell me a fun fact about space',
+]
+
+function makeTitle(text) {
+  const line = text
+    .split('\n')
+    .map((l) => l.replace(/^#{1,6}\s*/, '').replace(/[*_`~]/g, ''))
+    .map((l) => l.trim())
+    .find(Boolean)
+  const title = line || text
+  return title.length > 34 ? `${title.slice(0, 34)}…` : title
+}
+
+function extractText(node) {
+  if (node == null || typeof node === 'string') return node || ''
+  if (Array.isArray(node)) return node.map(extractText).join('')
+  if (node.props?.dangerouslySetInnerHTML?.__html) {
+    return node.props.dangerouslySetInnerHTML.__html.replace(/<[^>]*>/g, '')
+  }
+  if (node.props?.children != null) return extractText(node.props.children)
+  return ''
+}
+
+function CodeBlock({ children }) {
+  const [copied, setCopied] = useState(false)
+  const className = children?.props?.className || ''
+  const langMatch = /language-([\w-]+)/.exec(className)
+  const language = langMatch ? langMatch[1] : ''
+  const code = extractText(children)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <div className="code-block">
+      <div className="code-head">
+        <span className="code-lang">{language || 'text'}</span>
+        <button type="button" className="code-copy" onClick={copy}>
+          {copied ? 'Copied!' : 'Copy code'}
+        </button>
+      </div>
+      <pre>
+        <code className={className}>{children}</code>
+      </pre>
+    </div>
+  )
+}
 
 function App() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! How can I help you today?' },
-  ])
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -59,12 +115,23 @@ function App() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  async function sendMessage(e) {
-    e.preventDefault()
-    const text = input.trim()
-    if (!text || loading) return
+  const history = []
+  messages.forEach((msg, i) => {
+    if (msg.role === 'user') history.push({ idx: i, title: makeTitle(msg.content) })
+  })
 
-    const nextMessages = [...messages, { role: 'user', content: text }]
+  function scrollToMessage(idx) {
+    document.querySelector(`[data-idx="${idx}"]`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+
+  async function submit(text) {
+    const t = text.trim()
+    if (!t || loading) return
+
+    const nextMessages = [...messages, { role: 'user', content: t }]
     setMessages(nextMessages)
     setInput('')
     setLoading(true)
@@ -86,58 +153,103 @@ function App() {
     }
   }
 
+  async function sendMessage(e) {
+    e.preventDefault()
+    submit(input)
+  }
+
   return (
     <div className="app">
       <SpaceBackground />
       <div className="chat">
-      <header className="chat-header">
-        <h1>ChatBot AI</h1>
-      </header>
+        <header className="chat-header">
+          <h1>
+            <span className="title-accent">Y</span>a<span className="title-accent">S</span>h
+          </h1>
+        </header>
 
-      <main className="chat-messages">
-        {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.role}`}>
-            <div className="bubble">
-              {msg.role === 'assistant' ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[[rehypeHighlight, { lowlight }]]}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                msg.content
-              )}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="message assistant">
-            <div className="bubble">
-              <div className="typing-dots">
-                <span />
-                <span />
-                <span />
+        <main className="chat-messages">
+          {messages.length === 0 ? (
+            <div className="intro">
+              <div className="intro-badge">🛸</div>
+              <h2>
+                I&apos;m <span className="intro-accent">YaSh</span> AI Assistant
+              </h2>
+              <p>Ask me anything — code, ideas, explanations, and more.</p>
+              <div className="intro-suggestions">
+                {SUGGESTIONS.map((s) => (
+                  <button key={s} type="button" onClick={() => submit(s)}>
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        )}
-        {error && <div className="error">{error}</div>}
-        <div ref={endRef} />
-      </main>
+          ) : (
+            messages.map((msg, i) => (
+              <div key={i} data-idx={i} className={`message ${msg.role}`}>
+                <div className="bubble">
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[[rehypeHighlight, { languages }]]}
+                      components={{ pre: CodeBlock }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+          {loading && (
+            <div className="message assistant">
+              <div className="bubble">
+                <div className="typing-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+            </div>
+          )}
+          {error && <div className="error">{error}</div>}
+          <div ref={endRef} />
+        </main>
 
-      <form className="chat-input" onSubmit={sendMessage}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          autoFocus
-        />
-        <button type="submit" disabled={loading || !input.trim()}>
-          Send
-        </button>
-      </form>
+        <form className="chat-input" onSubmit={sendMessage}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask anything to YaSh..."
+            autoFocus
+          />
+          <button type="submit" disabled={loading || !input.trim()}>
+            Send
+          </button>
+        </form>
       </div>
+
+      <aside className="history">
+        <div className="history-header">
+          <h2 className="history-title">History</h2>
+          <span className="history-count">{history.length}</span>
+        </div>
+        {history.length === 0 ? (
+          <p className="history-empty">No questions yet</p>
+        ) : (
+          <ul className="history-list">
+            {history.map((item) => (
+              <li key={item.idx}>
+                <button type="button" onClick={() => scrollToMessage(item.idx)}>
+                  {item.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </aside>
     </div>
   )
 }

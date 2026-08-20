@@ -6,6 +6,7 @@
   --code-bg: #f4f3ec;
   --accent: #2563eb;
   --accent-bg: rgba(37, 99, 235, 0.1);
+  --sky: #0284c7;
 
   font: 16px/145% system-ui, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light dark;
@@ -24,6 +25,7 @@
     --code-bg: #1f2028;
     --accent: #3b82f6;
     --accent-bg: rgba(59, 130, 246, 0.15);
+    --sky: #38bdf8;
   }
 }
 
