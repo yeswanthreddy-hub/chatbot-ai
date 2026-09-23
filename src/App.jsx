@@ -224,6 +224,13 @@ function App() {
     abortRef.current?.abort()
   }
 
+  function clearChat() {
+    if (loading) abortRef.current?.abort()
+    setMessages([])
+    setInput('')
+    setError('')
+  }
+
   function dropLastEmptyAssistant() {
     setMessages((prev) => {
       const last = prev[prev.length - 1]
@@ -245,6 +252,11 @@ function App() {
           <h1>
             <span className="title-accent">Y</span>a<span className="title-accent">S</span>h
           </h1>
+          {messages.length > 0 && (
+            <button type="button" className="chat-new" onClick={clearChat}>
+              New chat
+            </button>
+          )}
         </header>
 
         <main className="chat-messages" aria-label="Chat conversation">
