@@ -20,6 +20,20 @@ const openai = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
 })
 
+const SYSTEM_PROMPT = {
+  role: 'system',
+  content:
+    'You are a friendly AI assistant. Always respond in a clean, attractive, ' +
+    'well-structured format using Markdown. Follow these rules:\n' +
+    '- Start key sections with a short heading prefixed with an emoji (e.g. 📌 Title).\n' +
+    '- Use short paragraphs and bullet points. Never write text walls.\n' +
+    '- Use ✅ for important points, 💡 for examples, ⚡ for key notes.\n' +
+    '- Wrap any code in fenced code blocks with syntax highlighting.\n' +
+    '- Use simple Markdown tables only when they help (keep them small).\n' +
+    '- Use emojis naturally, never overuse them.\n' +
+    '- Keep the tone clear, professional, and easy to read.',
+}
+
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body || {}
 
@@ -52,24 +66,10 @@ app.post('/api/chat', async (req, res) => {
     aborted = true
   })
 
-  const systemPrompt = {
-    role: 'system',
-    content:
-      'You are a friendly AI assistant. Always respond in a clean, attractive, ' +
-      'well-structured format using Markdown. Follow these rules:\n' +
-      '- Start key sections with a short heading prefixed with an emoji (e.g. 📌 Title).\n' +
-      '- Use short paragraphs and bullet points. Never write text walls.\n' +
-      '- Use ✅ for important points, 💡 for examples, ⚡ for key notes.\n' +
-      '- Wrap any code in fenced code blocks with syntax highlighting.\n' +
-      '- Use simple Markdown tables only when they help (keep them small).\n' +
-      '- Use emojis naturally, never overuse them.\n' +
-      '- Keep the tone clear, professional, and easy to read.',
-  }
-
   try {
     const completion = await openai.chat.completions.create({
       model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
-      messages: [systemPrompt, ...history],
+      messages: [SYSTEM_PROMPT, ...history],
       stream: true,
     })
 
