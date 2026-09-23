@@ -20,6 +20,7 @@ import yaml from 'highlight.js/lib/languages/yaml'
 import markdown from 'highlight.js/lib/languages/markdown'
 import SpaceBackground from './components/SpaceBackground.jsx'
 import { makeTitle } from './utils/title.js'
+import { loadMessages, saveMessages } from './utils/storage.js'
 import './App.css'
 
 const languages = {
@@ -52,8 +53,6 @@ const SUGGESTIONS = [
   'Help me plan a study schedule',
   'Tell me a fun fact about space',
 ]
-
-const STORAGE_KEY = 'yash-chat-messages'
 
 function extractText(node) {
   if (node == null || typeof node === 'string') return node || ''
@@ -98,18 +97,7 @@ function CodeBlock({ children }) {
 }
 
 function App() {
-  const [messages, setMessages] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) return parsed
-      }
-    } catch {
-      /* ignore invalid stored data */
-    }
-    return []
-  })
+  const [messages, setMessages] = useState(loadMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -125,11 +113,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
-    } catch {
-      /* storage unavailable (e.g. private mode), keep chat in memory only */
-    }
+    saveMessages(messages)
   }, [messages])
 
   const history = useMemo(() => {
