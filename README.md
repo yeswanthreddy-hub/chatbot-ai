@@ -44,6 +44,7 @@ A space-themed AI chatbot with a ChatGPT-style interface, powered by the Groq AP
 - `npm run start` — run the Express API server
 - `npm run build` — production build
 - `npm run preview` — preview the production build
+- `npm run test` — run the API tests (Node's built-in test runner)
 - `npm run lint` — run oxlint
 
 ## API
