@@ -259,7 +259,7 @@ function App() {
           )}
         </header>
 
-        <main className="chat-messages" aria-label="Chat conversation">
+        <main className="chat-messages" aria-label="Chat conversation" aria-live="polite">
           {messages.length === 0 ? (
             <div className="intro">
               <div className="intro-badge">🛸</div>
