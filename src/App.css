@@ -331,6 +331,8 @@
   margin: 0;
   padding: 12px 14px;
   overflow-x: auto;
+  max-height: 420px;
+  overflow-y: auto;
 }
 
 .code-block pre code {
