@@ -19,6 +19,7 @@ import sql from 'highlight.js/lib/languages/sql'
 import yaml from 'highlight.js/lib/languages/yaml'
 import markdown from 'highlight.js/lib/languages/markdown'
 import SpaceBackground from './components/SpaceBackground.jsx'
+import { makeTitle } from './utils/title.js'
 import './App.css'
 
 const languages = {
@@ -53,16 +54,6 @@ const SUGGESTIONS = [
 ]
 
 const STORAGE_KEY = 'yash-chat-messages'
-
-function makeTitle(text) {
-  const line = text
-    .split('\n')
-    .map((l) => l.replace(/^#{1,6}\s*/, '').replace(/[*_`~]/g, ''))
-    .map((l) => l.trim())
-    .find(Boolean)
-  const title = line || text
-  return title.length > 34 ? `${title.slice(0, 34)}…` : title
-}
 
 function extractText(node) {
   if (node == null || typeof node === 'string') return node || ''
