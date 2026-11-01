@@ -2,7 +2,11 @@
   "name": "chatbot-ai",
   "private": true,
   "version": "0.0.0",
+  "description": "Space-themed AI chatbot with a ChatGPT-style interface, powered by the Groq API",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite",
