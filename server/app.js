@@ -22,6 +22,18 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages array is required' })
   }
 
+  for (const msg of messages) {
+    if (!msg || typeof msg !== 'object' || !msg.role || typeof msg.content !== 'string') {
+      return res.status(400).json({ error: 'invalid message format' })
+    }
+    msg.content = msg.content.trim()
+  }
+
+  const hasContent = messages.some((msg) => msg.content.length > 0)
+  if (!hasContent) {
+    return res.status(400).json({ error: 'messages must have content' })
+  }
+
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.flushHeaders()
