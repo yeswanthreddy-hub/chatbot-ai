@@ -2,6 +2,11 @@
   position: relative;
 }
 
+:focus-visible {
+  outline: 2px solid skyblue;
+  outline-offset: 2px;
+}
+
 .space-bg {
   position: fixed;
   inset: 0;
