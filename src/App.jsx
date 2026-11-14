@@ -240,7 +240,7 @@ function App() {
           </h1>
         </header>
 
-        <main className="chat-messages">
+        <main className="chat-messages" aria-label="Chat conversation">
           {messages.length === 0 ? (
             <div className="intro">
               <div className="intro-badge">🛸</div>
@@ -283,7 +283,11 @@ function App() {
               </div>
             ))
           )}
-          {error && <div className="error">{error}</div>}
+          {error && (
+            <div className="error" role="alert">
+              {error}
+            </div>
+          )}
           <div ref={endRef} />
         </main>
 
@@ -292,6 +296,8 @@ function App() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything to YaSh..."
+            aria-label="Type your message"
+            maxLength={2000}
             autoFocus
           />
           {loading ? (
@@ -306,7 +312,7 @@ function App() {
         </form>
       </div>
 
-      <aside className="history">
+      <aside className="history" aria-label="Chat history">
         <div className="history-header">
           <h2 className="history-title">History</h2>
           <span className="history-count">{history.length}</span>
