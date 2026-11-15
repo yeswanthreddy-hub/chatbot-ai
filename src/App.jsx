@@ -130,7 +130,11 @@ function App() {
   }, [messages, loading])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    } catch {
+      /* storage unavailable (e.g. private mode), keep chat in memory only */
+    }
   }, [messages])
 
   const history = []
