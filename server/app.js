@@ -90,6 +90,10 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' })
 })
