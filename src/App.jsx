@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -137,10 +137,13 @@ function App() {
     }
   }, [messages])
 
-  const history = []
-  messages.forEach((msg, i) => {
-    if (msg.role === 'user') history.push({ idx: i, title: makeTitle(msg.content) })
-  })
+  const history = useMemo(() => {
+    const items = []
+    messages.forEach((msg, i) => {
+      if (msg.role === 'user') items.push({ idx: i, title: makeTitle(msg.content) })
+    })
+    return items
+  }, [messages])
 
   function scrollToMessage(idx) {
     document.querySelector(`[data-idx="${idx}"]`)?.scrollIntoView({
