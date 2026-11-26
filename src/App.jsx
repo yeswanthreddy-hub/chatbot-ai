@@ -130,6 +130,10 @@ function App() {
   }, [messages, loading])
 
   useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
+
+  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
     } catch {
