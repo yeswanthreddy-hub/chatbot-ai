@@ -34,6 +34,9 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages must have content' })
   }
 
+  const MAX_HISTORY = 12
+  const history = messages.slice(-MAX_HISTORY)
+
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache, no-transform')
   res.setHeader('X-Accel-Buffering', 'no')
@@ -61,7 +64,7 @@ app.post('/api/chat', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
       model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
-      messages: [systemPrompt, ...messages],
+      messages: [systemPrompt, ...history],
       stream: true,
     })
 
