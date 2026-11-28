@@ -10,6 +10,11 @@ const app = express()
 app.use(cors())
 app.use(express.json({ limit: '256kb' }))
 
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`)
+  next()
+})
+
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
   baseURL: 'https://api.groq.com/openai/v1',
