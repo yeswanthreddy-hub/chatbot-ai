@@ -41,9 +41,19 @@ A space-themed AI chatbot with a ChatGPT-style interface, powered by the Groq AP
 - `npm run dev` — start the client (Vite on :5230) and the API server (Express on :3001)
 - `npm run dev:client` — Vite only
 - `npm run dev:server` — Express API only
+- `npm run start` — run the Express API server
 - `npm run build` — production build
 - `npm run preview` — preview the production build
 - `npm run lint` — run oxlint
+
+## API
+
+The Express server exposes a small REST API:
+
+- `POST /api/chat` — send `{ "messages": [{ "role", "content" }, ...] }` and
+  receive a streamed Markdown reply. The server validates the payload, trims
+  message content, and only sends the most recent 12 messages to the model.
+- `GET /api/health` — returns `{ "status": "ok" }` when the server is running.
 
 ## Tech stack
 
